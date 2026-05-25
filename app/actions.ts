@@ -5,28 +5,6 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import type { UsuarioAlarmaForm } from "@/types/database"
 
-function validateUsuarioForm(formData: UsuarioAlarmaForm) {
-  const requiredFields: Array<keyof UsuarioAlarmaForm> = [
-    "sede_id",
-    "nombre",
-    "cedula",
-    "celular",
-    "clave",
-    "ticket",
-    "lider_solicitante",
-  ]
-
-  for (const field of requiredFields) {
-    if (!formData[field] || String(formData[field]).trim() === "") {
-      throw new Error("Todos los campos son obligatorios")
-    }
-  }
-
-  if (formData.clave.length !== 4) {
-    throw new Error("La clave de alarma debe tener 4 digitos")
-  }
-}
-
 export async function getSedes() {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -64,21 +42,11 @@ export async function getUsuarios(searchTerm?: string, sedeId?: string) {
 }
 
 export async function createUsuario(formData: UsuarioAlarmaForm) {
-  validateUsuarioForm(formData)
-
   const supabase = await createClient()
-
-  const insertData = {
-    ...formData,
-    activo: true,
-    fecha_registro: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-
+  
   const { data, error } = await supabase
     .from("usuarios_alarma")
-    .insert([insertData])
+    .insert([formData])
     .select()
     .single()
 
@@ -86,7 +54,7 @@ export async function createUsuario(formData: UsuarioAlarmaForm) {
     if (error.code === "23505") {
       throw new Error("Ya existe un usuario con esta cedula")
     }
-    throw new Error(error.message || "Error al crear el usuario")
+    throw error
   }
 
   revalidatePath("/")
@@ -107,7 +75,7 @@ export async function updateUsuario(id: string, formData: Partial<UsuarioAlarmaF
     if (error.code === "23505") {
       throw new Error("Ya existe un usuario con esta cedula")
     }
-    throw new Error(error.message || "Error al actualizar el usuario")
+    throw error
   }
 
   revalidatePath("/")
