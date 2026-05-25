@@ -43,36 +43,7 @@ export async function getUsuarios(searchTerm?: string, sedeId?: string) {
 
 export async function createUsuario(formData: UsuarioAlarmaForm) {
   const supabase = await createClient()
-  // Si existe un usuario con la misma cedula, manejar según su estado
-  const { data: existing, error: fetchError } = await supabase
-    .from("usuarios_alarma")
-    .select("id, activo")
-    .eq("cedula", formData.cedula)
-    .maybeSingle()
-
-  if (fetchError) throw fetchError
-
-  if (existing) {
-    if (existing.activo) {
-      // Ya existe uno activo -> respetar la restricción única
-      throw new Error("Ya existe un usuario con esta cedula")
-    }
-
-    // Existe pero está inactivo -> reactivar actualizando el registro
-    const { data, error } = await supabase
-      .from("usuarios_alarma")
-      .update({ ...formData, activo: true, updated_at: new Date().toISOString() })
-      .eq("id", existing.id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    revalidatePath("/")
-    return data
-  }
-
-  // Si no existe, insertar normalmente
+  
   const { data, error } = await supabase
     .from("usuarios_alarma")
     .insert([formData])
